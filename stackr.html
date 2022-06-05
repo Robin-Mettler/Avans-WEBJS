@@ -13,17 +13,17 @@
             <h1>Nieuwe Vrachtwagen</h1>
 
             <div class="tab">Dimenties Vrachtwagen
-                <input placeholder="Lengte..." name="length">
-                <input placeholder="Breedte..." name="width">
+                <input placeholder="Lengte (max. 4)" id="length">
+                <input placeholder="Breedte (max. 4)" id="width">
             </div>
 
             <div class="tab">Aankomst interval
-                <input placeholder="interval..." name="arrival_interval">
+                <input placeholder="interval (sec)" id="arrival_interval">
             </div>
 
             <div class="tab">Type transport
                 <br />
-                <select name="type">
+                <select id="type">
                     <option value="cold">Koud</option>
                     <option value="fragile">Breekbaar</option>
                     <option value="general">Algemeen</option>
@@ -33,7 +33,7 @@
             </div>
 
             <div class="tab">Actieradius
-                <input placeholder="actieradius..." name="radius">
+                <input placeholder="actieradius (km)" id="radius">
             </div>
 
             <br />
@@ -44,6 +44,8 @@
                 </div>
             </div>
         </form>
+
+        <canvas width="1200" height="1020" id="myCanvas" style="border: 1px solid black; margin-top: 10px;"></canvas> 
     </div>
 
     <footer>
