@@ -6,46 +6,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <title>Stackr</title>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="weather.js" defer></script>
 </head>
 <body>
     <div class="container">
-        <form class="truckForm">
-            <h1>Nieuwe Vrachtwagen</h1>
-
-            <div class="tab">Dimenties Vrachtwagen
-                <input placeholder="Lengte (max. 4)" id="length">
-                <input placeholder="Breedte (max. 4)" id="width">
+        <div class="row">
+            <div class="col-md m-2 bg-light">
+                <span id="weersbeschrijving" class="p-2"></span>
+                <form id="weatherapi">
+                    <select id="city">
+                        <option value="Amsterdam">Amsterdam</option>
+                        <option value="New York">New York</option>
+                        <option value="Birmingham">Birmingham</option>
+                        <option value="Melbourne">Melbourne</option>
+                        <option value="Sarajevo">Sarajevo</option>
+                    </select>
+                    <button type="button" onclick="searchCity()">Zoek</button>
+                </form>
             </div>
-
-            <div class="tab">Aankomst interval
-                <input placeholder="interval (sec)" id="arrival_interval">
-            </div>
-
-            <div class="tab">Type transport
-                <br />
-                <select id="type">
-                    <option value="cold">Koud</option>
-                    <option value="fragile">Breekbaar</option>
-                    <option value="general">Algemeen</option>
-                    <option value="pallets">Pallets</option>
-                    <option value="fastdelivery">Snelkoerier</option>
-                </select>
-            </div>
-
-            <div class="tab">Actieradius
-                <input placeholder="actieradius (km)" id="radius">
-            </div>
-
-            <br />
-
-            <div style="overflow: auto;">
-                <div style="float: right;">
+            <div class="col-md m-2 bg-light">
+                <form class="p-2">
+                    <h1>Nieuwe Vrachtwagen</h1>
+        
+                    <div class="tab">Dimenties Vrachtwagen : 
+                        <input placeholder="Lengte (max. 4)" id="length">
+                        <input placeholder="Breedte (max. 4)" id="width">
+                    </div>
+        
+                    <div class="tab">Aankomst interval : 
+                        <input placeholder="interval (sec)" id="arrival_interval">
+                    </div>
+        
+                    <div class="tab">Type transport : 
+                        <br />
+                        <select id="type">
+                            <option value="cold">Koud</option>
+                            <option value="fragile">Breekbaar</option>
+                            <option value="general">Algemeen</option>
+                            <option value="pallets">Pallets</option>
+                            <option value="fastdelivery">Snelkoerier</option>
+                        </select>
+                    </div>
+        
+                    <div class="tab">Actieradius : 
+                        <input placeholder="actieradius (km)" id="radius">
+                    </div>
+        
+                    <br />
+    
                     <button type="button" id="nextBtn" onclick="nextStep()">Volgende</button>
-                </div>
+                </form>
             </div>
-        </form>
-
-        <canvas width="1200" height="1020" id="myCanvas" style="border: 1px solid black; margin-top: 10px;"></canvas> 
+        </div>
+    
+        <div class="m-2">
+            <canvas width="1200" height="1020" id="myCanvas" style="border: 1px solid black;"></canvas> 
+        </div>
     </div>
 
     <footer>
