@@ -5,10 +5,51 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <script src="app.js"></script>
     <title>Stackr</title>
 </head>
 <body>
-    
+    <div class="container">
+        <form class="truckForm">
+            <h1>Nieuwe Vrachtwagen</h1>
+
+            <div class="tab">Dimenties Vrachtwagen
+                <input placeholder="Lengte (max. 4)" id="length">
+                <input placeholder="Breedte (max. 4)" id="width">
+            </div>
+
+            <div class="tab">Aankomst interval
+                <input placeholder="interval (sec)" id="arrival_interval">
+            </div>
+
+            <div class="tab">Type transport
+                <br />
+                <select id="type">
+                    <option value="cold">Koud</option>
+                    <option value="fragile">Breekbaar</option>
+                    <option value="general">Algemeen</option>
+                    <option value="pallets">Pallets</option>
+                    <option value="fastdelivery">Snelkoerier</option>
+                </select>
+            </div>
+
+            <div class="tab">Actieradius
+                <input placeholder="actieradius (km)" id="radius">
+            </div>
+
+            <br />
+
+            <div style="overflow: auto;">
+                <div style="float: right;">
+                    <button type="button" id="nextBtn" onclick="nextStep()">Volgende</button>
+                </div>
+            </div>
+        </form>
+
+        <canvas width="1200" height="1020" id="myCanvas" style="border: 1px solid black; margin-top: 10px;"></canvas> 
+    </div>
+
+    <footer>
+        <script src="app.js"></script>
+    </footer>
 </body>
 </html>
