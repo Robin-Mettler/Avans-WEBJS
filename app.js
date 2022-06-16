@@ -230,7 +230,26 @@ function generatePackageShape() {
 		newShape.push({x: vector.x, y: vector.y})
 	});
 	
+	if (Math.random() <= .5) { // 50% chance
+		mirrorFlipXShape(newShape);
+	}
+	if (Math.random() <= .5) { // 50% chance
+		mirrorFlipYShape(newShape);
+	}
+	
 	return newShape;
+}
+
+function mirrorFlipXShape(shape) {
+	shape.forEach(function(vector) {
+		vector.x = Math.abs(vector.x - 5) - 2;
+	});
+}
+
+function mirrorFlipYShape(shape) {
+	shape.forEach(function(vector) {
+		vector.y = Math.abs(vector.y - 5) - 2;
+	});
 }
 
 function getRandomPackageColor() {
