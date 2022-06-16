@@ -94,8 +94,8 @@ class Truck {
 		
 		this.color = truckColor(this.type);
 		this.slot = freeSlots.shift();
-		this.x = 10;
-		this.y = 250 * this.slot + 10;
+		this.y = 10;
+		this.x = 250 * this.slot + 10;
 	}
 }
 
@@ -169,8 +169,8 @@ function clearCanvas() {
 }
 
 function drawTruck(truck) {
-    let truckWidth = truck.width * 75;
-    let truckLength = Math.round(truck.length * 37.5);
+    let truckLength = truck.width * 75;
+    let truckWidth = Math.round(truck.length * 37.5);
 
     ctx.fillStyle = truck.color;
     ctx.fillRect(truck.x, truck.y, truckWidth, truckLength);
