@@ -20,7 +20,13 @@ function nextStep() {
     tabs[currentStep].style.display = "none";
     currentStep++;
     if (currentStep >= tabs.length) {
-        createTruck();
+        createTruck(0, 
+			document.getElementById("length").value,
+			document.getElementById("width").value,
+			document.getElementById("arrival_interval").value,
+			document.getElementById("type").value,
+			document.getElementById("radius").value
+		);
         resetForm();
     }
     showStep(currentStep);
@@ -45,18 +51,6 @@ function validateForm() {
     return valid;
 }
 
-function createTruck() {
-    let truck = {
-        lengte: document.getElementById("length").value,
-        breedte: document.getElementById("width").value,
-        interval: document.getElementById("arrival_interval").value,
-        type: document.getElementById("type").value,
-        radius: document.getElementById("radius").value
-    };
-
-    drawTruck(truck);
-}
-
 function resetForm() {
     currentStep = 0;
     document.getElementById("length").value = null;
@@ -66,20 +60,43 @@ function resetForm() {
     document.getElementById("radius").value = null;
 }
 
-function drawTruck(truck) {
-    let canvas = document.getElementById("myCanvas");
-    let ctx = canvas.getContext("2d");
+// HALLS //
 
-    let truckBreedte = truck.breedte * 75;
-    let trucklengte = truck.lengte * 38;
-    let color = truckColor(truck.type);
+var halls = [];
+var currentHallId = 0;
 
-    let slot = freeSlots.shift();
-    let x = 10;
-    let y = 250 * slot + 10;
+class Hall {
+	constructor(id) {
+		this.id = id;
+		this.trucks = [];
+	}
+	
+	addTruck(truck) {
+		this.trucks.push(truck);
+	}
+}
 
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, truckBreedte, trucklengte);
+function createHall() {
+	halls.push(new Hall(halls.length))
+}
+
+createHall();
+
+// TRUCKS //
+
+class Truck {
+	constructor(length, width, interval, type, radius) {
+		this.length = length;
+		this.width = width;
+		this.interval = interval;
+		this.type = type;
+		this.radius = radius;
+		
+		this.color = truckColor(this.type);
+		this.slot = freeSlots.shift();
+		this.x = 10;
+		this.y = 250 * this.slot + 10;
+	}
 }
 
 function truckColor(type) {
@@ -104,4 +121,59 @@ function truckColor(type) {
     return color;
 }
 
- 
+function createTruck(hallId, length, width, interval, type, radius) {
+	let truck = new Truck(
+        length,
+        width,
+        interval,
+        type,
+        radius
+    );
+	
+	halls.forEach(function(hall) {
+		if (hall.id == hallId) {
+			hall.addTruck(truck);
+		}
+	});
+}
+
+// UPDATE LOGIC //
+
+let updateRate = 100;
+
+function update() {
+	draw(currentHallId);
+}
+
+// CANVAS //
+
+let canvas = document.getElementById("myCanvas");
+let ctx = canvas.getContext("2d");
+let canvasWidth = 1200;
+let canvasHeight = 1020;
+
+function draw(hallId) {
+	halls.forEach(function(hall) {
+		if (hall.id == hallId) {
+			clearCanvas()
+			
+			hall.trucks.forEach(function(truck) {
+				drawTruck(truck);
+			});
+		}
+	});
+}
+
+function clearCanvas() {
+	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+}
+
+function drawTruck(truck) {
+    let truckWidth = truck.width * 75;
+    let truckLength = Math.round(truck.length * 37.5);
+
+    ctx.fillStyle = truck.color;
+    ctx.fillRect(truck.x, truck.y, truckWidth, truckLength);
+}
+
+setInterval(update, updateRate)
