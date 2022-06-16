@@ -81,7 +81,13 @@ class Hall {
 	addTruck(truck) {
 		this.trucks.push(truck);
 		
-		for (let i=0; i < 4; i++) {
+		this.conveyers.forEach(function(conveyer) {
+			if (conveyer.isSplitter()) {
+				conveyer.increaseSplitRate();
+			}
+		});
+		
+		for (let i=0; i < 3; i++) {
 			let conveyer = new ConveyerBelt(truck.slot*240 + i*60 + 30, 60);
 			
 			this.conveyers.push(conveyer);
@@ -97,19 +103,26 @@ class Hall {
 		for (let i=0; i < 2; i++) {
 			let conveyer = new ConveyerBelt(truck.slot*240 + 180 + 30, 120 + i*60);
 			
+			this.conveyers[this.conveyers.length - 1].setNextPackageTarget(conveyer);
 			this.conveyers.push(conveyer);
-			this.conveyers[this.conveyers.length - 2].setNextPackageTarget(conveyer);
 			
 			if (i == 1) {
 				conveyer.setNextPackageTarget(truck);
 			}
 		}
+		
+		// splitter
+		let conveyer = new ConveyerBelt(truck.slot*240 + 180 + 30, 60);
+		
+		this.conveyers[this.conveyers.length - 3].setNextPackageTarget(conveyer);
+		conveyer.setOffShootPackageTarget(this.conveyers[this.conveyers.length - 2]);
+		this.conveyers.push(conveyer);
 	}
 	
 	addPackage() {
 		if (this.startingConveyer !== null) {
 			let truckPackage = new Package(
-				this.startingConveyer.x - 30,
+				this.startingConveyer.x - 60,
 				this.startingConveyer.y
 			)
 			
@@ -130,7 +143,7 @@ function createHall() {
 
 createHall();
 
-// PACKAGE //
+// PACKAGES //
 
 class Package {
 	constructor(x, y) {
@@ -237,6 +250,11 @@ class ConveyerBelt {
 		this.packageTarget = null;
 		this.packageSpeed = 2;
 		this.color = "lightgrey";
+		
+		this.offShootPackageTarget = null;
+		this.splitterColor = "grey";
+		this.splitRate = 1;
+		this.splitDelay = 0;
 	}
 	
 	update() {
@@ -245,8 +263,21 @@ class ConveyerBelt {
 			this.package.x = clamp(this.x, this.package.x - this.packageSpeed, this.package.x + this.packageSpeed);
 			this.package.y = clamp(this.y, this.package.y - this.packageSpeed, this.package.y + this.packageSpeed);
 			
-			if (!this.isDeadEnd() && this.package.x == this.x && this.package.y == this.y) {
-				if (this.packageTarget.addPackage(this.package)) {
+			if (this.package.x == this.x && this.package.y == this.y) {
+				let packageHasBeenSplit = false;
+				if (this.isSplitter()) {
+					this.splitDelay = Math.max(this.splitDelay - 1, 0);
+					
+					if (this.splitDelay == 0) {
+						if (this.offShootPackageTarget.addPackage(this.package)) {
+							packageHasBeenSplit = true;
+							this.package = null;
+							this.splitDelay = this.splitRate;
+						}
+					}
+				}
+				
+				if (!packageHasBeenSplit && !this.isDeadEnd() && this.packageTarget.addPackage(this.package)) {
 					this.package = null;
 				}
 			}
@@ -259,6 +290,10 @@ class ConveyerBelt {
 	
 	isDeadEnd() {
 		return this.packageTarget === null;
+	}
+	
+	isSplitter() {
+		return this.offShootPackageTarget !== null;
 	}
 	
 	addPackage(truckPackage) {
@@ -274,8 +309,23 @@ class ConveyerBelt {
 		this.packageTarget = packageTarget;
 	}
 	
+	setOffShootPackageTarget(packageTarget) {
+		this.offShootPackageTarget = packageTarget;
+	}
+	
+	increaseSplitRate() {
+		this.splitRate++;
+		this.splitDelay = this.splitRate;
+	}
+	
 	draw(ctx) {
-		ctx.fillStyle = this.color;
+		if (this.isSplitter()) {
+			ctx.fillStyle = this.splitterColor;
+		}
+		else {
+			ctx.fillStyle = this.color;
+		}
+		
 		ctx.fillRect(this.x - this.width*.5, this.y - this.height*.5, this.width, this.height);
 	}
 }
@@ -298,6 +348,11 @@ class Truck {
 		this.packageSpeed = 2;
 		this.packageTargetX = this.x + this.width*.5;
 		this.packageTargetY = this.y + 30;
+		this.acceptsPackages = true;
+		
+		if (this.slot == 1) {
+			this.acceptsPackages = false;
+		}
 	}
 	
 	update() {
@@ -312,9 +367,13 @@ class Truck {
 	}
 	
 	addPackage(truckPackage) {
-		this.packages.push(truckPackage);
-		
-		return true;
+		if (this.acceptsPackages) {
+			this.packages.push(truckPackage);
+			
+			return true;
+		}
+
+		return false;
 	}
 	
 	draw(ctx) {
