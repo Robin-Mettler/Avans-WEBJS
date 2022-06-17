@@ -368,10 +368,6 @@ class Truck {
 		this.packageTargetX = this.x + this.width*.5;
 		this.packageTargetY = this.y + 30;
 		this.acceptsPackages = true;
-		
-		if (this.slot == 1) {
-			this.acceptsPackages = false;
-		}
 	}
 	
 	update() {
