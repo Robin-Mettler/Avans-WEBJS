@@ -96,6 +96,10 @@ class Truck {
 		this.slot = freeSlots.shift();
 		this.y = 10;
 		this.x = 250 * this.slot + 10;
+
+        if (allowedToLeave(type, document.getElementById("city").value)) {
+            document.getElementById("send"+this.slot).disabled = false;
+        }
 	}
 }
 
@@ -135,6 +139,10 @@ function createTruck(hallId, length, width, interval, type, radius) {
 			hall.addTruck(truck);
 		}
 	});
+}
+
+function sendTruckAway() {
+    
 }
 
 // UPDATE LOGIC //

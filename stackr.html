@@ -14,7 +14,8 @@
     <div class="container">
         <div class="row">
             <div class="col-md m-2 bg-light">
-                <span id="weersbeschrijving" class="p-2"></span>
+                <h1>Weer</h1>
+                <span id="weersbeschrijving"></span>
                 <form id="weatherapi">
                     <select id="city">
                         <option value="Amsterdam">Amsterdam</option>
@@ -30,7 +31,7 @@
                 <form class="p-2">
                     <h1>Nieuwe Vrachtwagen</h1>
         
-                    <div class="tab">Dimenties Vrachtwagen : 
+                    <div class="tab">Dimenties Vrachtwagen : <br />
                         <input placeholder="Lengte (max. 4)" id="length">
                         <input placeholder="Breedte (max. 4)" id="width">
                     </div>
@@ -58,6 +59,13 @@
     
                     <button type="button" id="nextBtn" onclick="nextStep()">Volgende</button>
                 </form>
+            </div>
+            <div class="col-md m-2 bg-light">
+                <h1>Stuur trucks weg</h1>
+                <button type="button" id="send0" onclick="sendTruckAway(0)" disabled>Truck 1</button>
+                <button type="button" id="send1" onclick="sendTruckAway(1)" disabled>Truck 2</button>
+                <button type="button" id="send2" onclick="sendTruckAway(2)" disabled>Truck 3</button>
+                <button type="button" id="send3" onclick="sendTruckAway(3)" disabled>Truck 4</button>
             </div>
         </div>
     
