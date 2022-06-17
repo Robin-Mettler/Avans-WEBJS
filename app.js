@@ -1,5 +1,4 @@
 var currentStep = 0;
-let freeSlots = [0, 1, 2, 3];
 
 showStep(currentStep);
 
@@ -20,7 +19,7 @@ function nextStep() {
     tabs[currentStep].style.display = "none";
     currentStep++;
     if (currentStep >= tabs.length) {
-        createTruck(0, 
+        createTruck(currentHallId, 
 			document.getElementById("length").value,
 			document.getElementById("width").value,
 			document.getElementById("arrival_interval").value,
@@ -76,6 +75,7 @@ class Hall {
 		this.packages = [];
 		this.conveyers = [];
 		this.startingConveyer = null;
+		this.freeSlots = [0, 1, 2, 3];
 	}
 	
 	addTruck(truck) {
@@ -137,11 +137,41 @@ class Hall {
 	}
 }
 
-function createHall() {
-	halls.push(new Hall(halls.length))
+function updateHallArrowButtons() {
+	let hallLeft = document.getElementById("hall-left-button");
+	let hallRight = document.getElementById("hall-right-button");
+	let hallText = document.getElementById("hall-identfier");
+	
+	hallLeft.disabled = currentHallId == 0;
+	hallRight.disabled = currentHallId == halls.length - 1;
+	hallText.innerHTML = "Hall " + (currentHallId + 1);
 }
 
-createHall();
+function nextHall() {
+	if (currentHallId != halls.length - 1) {
+		currentHallId++;
+		
+		updateHallArrowButtons();
+	}
+}
+
+function previousHall() {
+	if (currentHallId != 0) {
+		currentHallId--;
+		
+		updateHallArrowButtons();
+	}
+}
+
+function createHall() {
+	halls.push(new Hall(halls.length));
+	
+	updateHallArrowButtons();
+}
+
+for (let i=0; i < 2; i++) { // initialize 2 halls
+	createHall();
+}
 
 // PACKAGES //
 
@@ -352,7 +382,7 @@ class ConveyerBelt {
 // TRUCKS //
 
 class Truck {
-	constructor(length, width, interval, type, radius) {
+	constructor(hallId, length, width, interval, type, radius) {
 		this.length = length * 75;
 		this.width = Math.round(width * 37.5);
 		this.interval = interval;
@@ -360,7 +390,7 @@ class Truck {
 		this.radius = radius;
 		
 		this.color = truckColor(this.type);
-		this.slot = freeSlots.shift();
+		this.slot = halls[hallId].freeSlots.shift();
 		this.y = 210;
 		this.x = 240 * this.slot - this.width*.5 + 210;
 		this.packages = [];
@@ -421,6 +451,7 @@ function truckColor(type) {
 
 function createTruck(hallId, length, width, interval, type, radius) {
 	let truck = new Truck(
+		hallId,
         length,
         width,
         interval,
@@ -441,16 +472,14 @@ let updateRate = 20;
 
 function update() {
 	halls.forEach(function(hall) {
-		if (hall.id == currentHallId) {
-			hall.addPackage();
-			
-			hall.conveyers.forEach(function(conveyer) {
-				conveyer.update();
-			});
-			hall.trucks.forEach(function(truck) {
-				truck.update();
-			});
-		}
+		hall.addPackage();
+		
+		hall.conveyers.forEach(function(conveyer) {
+			conveyer.update();
+		});
+		hall.trucks.forEach(function(truck) {
+			truck.update();
+		});
 	});
 	
 	draw(currentHallId);
