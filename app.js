@@ -132,6 +132,23 @@ class Hall {
 		}
 	}
 	
+	destroyPackage(truckPackageToDestroy) {
+		let packageIndexToDestroy = -1;
+		for (let i = 0; i < this.packages.length; i++) {
+			let truckPackage = this.packages[i];
+			
+			if (truckPackage.id == truckPackageToDestroy.id) {
+				packageIndexToDestroy = i;
+				
+				break;
+			}
+		}
+		
+		if (packageIndexToDestroy != -1) {
+			this.packages.splice(packageIndexToDestroy, 1);
+		}
+	}
+	
 	setStartingConveyer(startingConveyer) {
 		this.startingConveyer = startingConveyer;
 	}
@@ -145,8 +162,11 @@ createHall();
 
 // PACKAGES //
 
+var amountOfPackageIds = 0;
+
 class Package {
 	constructor(x, y) {
+		this.id = amountOfPackageIds;
 		this.x = x;
 		this.y = y;
 		
@@ -154,6 +174,9 @@ class Package {
 		this.height = 48;
 		this.shape = generatePackageShape();
 		this.color = getRandomPackageColor();
+		this.isBeingDragged = false;
+		
+		amountOfPackageIds++;
 	}
 	
 	draw(ctx) {
@@ -278,6 +301,12 @@ class ConveyerBelt {
 	
 	update() {
 		if (this.hasPackage()) {
+			if (this.package.isBeingDragged) {
+				this.package = null;
+				
+				return;
+			}
+			
 			// move package towards next target
 			this.package.x = clamp(this.x, this.package.x - this.packageSpeed, this.package.x + this.packageSpeed);
 			this.package.y = clamp(this.y, this.package.y - this.packageSpeed, this.package.y + this.packageSpeed);
@@ -365,19 +394,22 @@ class Truck {
 		this.x = 240 * this.slot - this.width*.5 + 210;
 		this.packages = [];
 		this.packageSpeed = 2;
-		this.packageTargetX = this.x + this.width*.5;
-		this.packageTargetY = this.y + 30;
 		this.acceptsPackages = true;
 	}
 	
 	update() {
-		let targetX = this.packageTargetX;
-		let targetY = this.packageTargetY;
+		if (this.package.isBeingDragged) {
+			this.package = null;
+			
+			return;
+		}
+		
+		let target = this.getPackageTargetLocation();
 		let packageSpeed = this.packageSpeed;
 		
 		this.packages.forEach(function(truckPackage) {
-			truckPackage.x = clamp(targetX, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
-			truckPackage.y = clamp(targetY, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+			truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
+			truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
 		});
 	}
 	
@@ -389,6 +421,10 @@ class Truck {
 		}
 
 		return false;
+	}
+	
+	getPackageTargetLocation() {
+		return {x: this.x + this.width*.5, y: this.y + 30}
 	}
 	
 	draw(ctx) {
@@ -484,5 +520,95 @@ function draw(hallId) {
 function clearCanvas() {
 	ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 }
+
+// DRAG AND DROP PACKAGES //
+
+var pickedUpPackage = null;
+
+function onMouseDown(e) {
+	if (pickedUpPackage === null) {
+		let canvasBoundingClientRect = canvas.getBoundingClientRect();
+		let mouseX = parseInt(e.clientX - canvasBoundingClientRect.left);
+		let mouseY = parseInt(e.clientY - canvasBoundingClientRect.top);
+		
+		halls.forEach(function(hall) {
+			if (hall.id == currentHallId) {
+				hall.packages.forEach(function(truckPackage) {
+					// if mouse position is on top of a package pick it up
+					if (pickedUpPackage === null && Math.abs(mouseX - truckPackage.x) <= truckPackage.width*.5 
+							&& Math.abs(mouseY - truckPackage.y) <= truckPackage.height*.5 ) {
+						e.preventDefault();
+						e.stopPropagation();
+						
+						pickedUpPackage = truckPackage;
+						
+						truckPackage.x = mouseX;
+						truckPackage.y = mouseY;
+						truckPackage.isBeingDragged = true;
+					}
+				});
+			}
+		});
+	}
+}
+
+function onMouseMove(e) {
+	// move package if it is picked up
+	if (pickedUpPackage !== null) {
+		e.preventDefault();
+        e.stopPropagation();
+		
+		let canvasBoundingClientRect = canvas.getBoundingClientRect();
+		let mouseX = parseInt(e.clientX - canvasBoundingClientRect.left);
+		let mouseY = parseInt(e.clientY - canvasBoundingClientRect.top);
+		
+		pickedUpPackage.x = mouseX;
+		pickedUpPackage.y = mouseY;
+	}
+}
+
+function onMouseUp(e) {
+	// drop package on mouse up
+	if (pickedUpPackage !== null) {
+		e.preventDefault();
+        e.stopPropagation();
+		
+		let canvasBoundingClientRect = canvas.getBoundingClientRect();
+		let mouseX = parseInt(e.clientX - canvasBoundingClientRect.left);
+		let mouseY = parseInt(e.clientY - canvasBoundingClientRect.top);
+		
+		halls.forEach(function(hall) {
+			if (hall.id == currentHallId) {
+				let packageInTruck = false;
+				
+				hall.trucks.forEach(function(truck) {
+					if (mouseX >= truck.x && mouseX <= truck.x + truck.width
+							&& mouseY >= truck.y && mouseY <= truck.y + truck.length) {
+						
+						let target = truck.getPackageTargetLocation();
+						pickedUpPackage.x = target.x;
+						pickedUpPackage.y = target.y;
+						pickedUpPackage.isBeingDragged = false;
+						
+						truck.addPackage(pickedUpPackage);
+						
+						packageInTruck = true;
+					}
+				});
+				
+				if (!packageInTruck) {
+					hall.destroyPackage(pickedUpPackage);
+				}
+				
+				
+				pickedUpPackage = null;
+			}
+		});
+	}
+}
+
+canvas.onmousedown = onMouseDown;
+canvas.onmousemove = onMouseMove;
+canvas.onmouseup = onMouseUp;
 
 setInterval(update, updateRate)
