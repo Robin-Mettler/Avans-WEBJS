@@ -166,6 +166,9 @@ function updateHallArrowButtons() {
 
 function nextHall() {
 	if (currentHallId != halls.length - 1) {
+		// drop left-over dragged package
+		dropPackage(0, 0);
+		
 		currentHallId++;
 		
 		updateHallArrowButtons();
@@ -174,6 +177,9 @@ function nextHall() {
 
 function previousHall() {
 	if (currentHallId != 0) {
+		// drop left-over dragged package
+		dropPackage(0, 0);
+		
 		currentHallId--;
 		
 		updateHallArrowButtons();
@@ -615,11 +621,7 @@ function onMouseDown(e) {
 						e.preventDefault();
 						e.stopPropagation();
 						
-						pickedUpPackage = truckPackage;
-						
-						truckPackage.x = mouseX;
-						truckPackage.y = mouseY;
-						truckPackage.isBeingDragged = true;
+						pickUpPackage(truckPackage, mouseX, mouseY);
 					}
 				});
 			}
@@ -652,13 +654,31 @@ function onMouseUp(e) {
 		let mouseX = parseInt(e.clientX - canvasBoundingClientRect.left);
 		let mouseY = parseInt(e.clientY - canvasBoundingClientRect.top);
 		
+		dropPackage(mouseX, mouseY);
+	}
+}
+
+canvas.onmousedown = onMouseDown;
+canvas.onmousemove = onMouseMove;
+canvas.onmouseup = onMouseUp;
+
+function pickUpPackage(truckPackage, x, y) {
+	pickedUpPackage = truckPackage;
+	
+	truckPackage.x = x;
+	truckPackage.y = y;
+	truckPackage.isBeingDragged = true;
+}
+
+function dropPackage(x, y) {
+	if (pickedUpPackage) {
 		halls.forEach(function(hall) {
 			if (hall.id == currentHallId) {
 				let packageInTruck = false;
 				
 				hall.trucks.forEach(function(truck) {
-					if (mouseX >= truck.x && mouseX <= truck.x + truck.width
-							&& mouseY >= truck.y && mouseY <= truck.y + truck.length) {
+					if (x >= truck.x && x <= truck.x + truck.width
+							&& y >= truck.y && y <= truck.y + truck.length) {
 						
 						let target = truck.getPackageTargetLocation();
 						pickedUpPackage.x = target.x;
@@ -675,15 +695,10 @@ function onMouseUp(e) {
 					hall.destroyPackage(pickedUpPackage);
 				}
 				
-				
 				pickedUpPackage = null;
 			}
 		});
 	}
 }
-
-canvas.onmousedown = onMouseDown;
-canvas.onmousemove = onMouseMove;
-canvas.onmouseup = onMouseUp;
 
 setInterval(update, updateRate)
