@@ -25,7 +25,7 @@
                         <option value="Melbourne">Melbourne</option>
                         <option value="Sarajevo">Sarajevo</option>
                     </select>
-                    <button type="button" onclick="searchCity()">Zoek</button>
+                    <button type="button" id="weather-button">Zoek</button>
                 </form>
             </div>
             <div class="col-md m-2 bg-light">
@@ -58,7 +58,7 @@
         
                     <br />
     
-                    <button type="button" id="nextBtn" onclick="nextStep()">Volgende</button>
+                    <button type="button" id="nextBtn">Volgende</button>
                 </form>
             </div>
             <div class="col-md m-2 bg-light">
@@ -69,6 +69,14 @@
                 <button type="button" id="send3" onclick="sendTruckAway(3)" disabled>Truck 4</button>
             </div>
         </div>
+		
+		<div class="btn-group">
+			<button id="hall-left-button">&larr;</button>
+			<div id="hall-identfier">
+				Hall 1
+			</div>
+			<button id="hall-right-button">&rarr;</button>
+		</div>
     
         <div class="m-2">
             <canvas width="1200" height="1020" id="myCanvas" style="border: 1px solid black;"></canvas> 
