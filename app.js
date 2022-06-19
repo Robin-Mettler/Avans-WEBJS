@@ -304,6 +304,7 @@ class ConveyerBelt {
 		this.packageTarget = null;
 		this.packageSpeed = 2;
 		this.color = "lightgrey";
+		this.splitOffLineColor = "grey";
 		
 		this.offShootPackageTarget = null;
 		this.splitterColor = "grey";
@@ -375,12 +376,27 @@ class ConveyerBelt {
 	draw(ctx) {
 		if (this.isSplitter()) {
 			ctx.fillStyle = this.splitterColor;
+			ctx.fillRect(this.x - this.width*.5, this.y - this.height*.5, this.width, this.height);
 		}
 		else {
 			ctx.fillStyle = this.color;
+			ctx.fillRect(this.x - this.width*.5, this.y - this.height*.5, this.width, this.height);
+			
+			if (!this.isDeadEnd()) {
+				let x1 = Math.max(this.x - this.width*.5, this.packageTarget.x - this.packageTarget.width*.5);
+				let y1 = Math.max(this.y - this.height*.5, this.packageTarget.y - this.packageTarget.height*.5);
+				let x2 = Math.min(this.x + this.width*.5, this.packageTarget.x + this.packageTarget.width*.5);
+				let y2 = Math.min(this.y + this.height*.5, this.packageTarget.y + this.packageTarget.height*.5);
+				
+				ctx.beginPath();
+				ctx.strokeStyle = this.splitOffLineColor;
+				ctx.lineWidth = 2;
+				ctx.setLineDash([7, 4]);
+				ctx.moveTo(x1, y1);
+				ctx.lineTo(x2, y2);
+				ctx.stroke();
+			}
 		}
-		
-		ctx.fillRect(this.x - this.width*.5, this.y - this.height*.5, this.width, this.height);
 	}
 }
 
