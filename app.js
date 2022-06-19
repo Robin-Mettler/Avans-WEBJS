@@ -169,6 +169,33 @@ function updateHallArrowButtons() {
 	hallText.innerHTML = "Hall " + (currentHallId + 1);
 }
 
+async function updateHallTruckButtons() {
+    let currentHall = null;
+    halls.forEach(function(hall) {
+		if (hall.id == currentHallId) {
+            currentHall = hall;
+        }
+    });
+	
+	for (let i=0; i < 4; i++) {
+		let truckButton = document.getElementById("send" + i);
+		
+		if (i >= currentHall.trucks.length) {
+			truckButton.disabled = true;
+		}
+		else {
+			let truck = currentHall.trucks[i];
+			
+			if (!truck.hasLeft && await allowedToLeaveDueToWeather(truck.type, currentCity)) {
+				truckButton.disabled = false;
+			}
+			else {
+				truckButton.disabled = true;
+			}
+		}
+	}
+}
+
 function nextHall() {
 	if (currentHallId != halls.length - 1) {
 		// drop left-over dragged package
@@ -177,6 +204,7 @@ function nextHall() {
 		currentHallId++;
 		
 		updateHallArrowButtons();
+		updateHallTruckButtons();
 	}
 }
 
@@ -188,6 +216,7 @@ function previousHall() {
 		currentHallId--;
 		
 		updateHallArrowButtons();
+		updateHallTruckButtons();
 	}
 }
 
@@ -486,11 +515,7 @@ class Truck {
 		this.packageCapacity = length * width;
 		this.packageSpeed = 2;
 		this.acceptsPackages = true;
-		this.visible = true;
-
-        if (allowedToLeaveDueToWeather(type, document.getElementById("city").value)) {
-            document.getElementById("send"+this.slot).disabled = false;
-        }
+		this.hasLeft = false;
 	}
 	
 	update() {		
@@ -564,9 +589,8 @@ class Truck {
 	}
 	
 	leave(slot, hall) {
-		document.getElementById("send"+slot).disabled = true;	
 		this.acceptsPackages = false;
-		this.visible = false;
+		this.hasLeft = true;
 		let truck = this;
 		
 		// remove packages in truck
@@ -579,17 +603,19 @@ class Truck {
 		setTimeout(function() {
 			truck.arrive(slot);
 		}, this.interval * 1000);
+		
+		updateHallTruckButtons();
 	}
 	
 	arrive(slot) {
 		this.acceptsPackages = true;
-		this.visible = true;
+		this.hasLeft = false;
 		
-		document.getElementById("send"+slot).disabled = false;
+		updateHallTruckButtons();
 	}
 	
 	draw(ctx) {
-		if (this.visible) {
+		if (!this.hasLeft) {
 			ctx.fillStyle = this.color;
 			ctx.fillRect(this.x, this.y, this.width, this.length);
 			
@@ -647,9 +673,11 @@ function createTruck(hallId, length, width, interval, type, radius) {
 			hall.addTruck(truck);
 		}
 	});
+	
+	updateHallTruckButtons();
 }
 
-function sendTruckAway(slot) {
+async function sendTruckAway(slot) {
     let selectedTruck = null;
     let selectedHall = null;
     halls.forEach(function(hall) {
@@ -659,8 +687,8 @@ function sendTruckAway(slot) {
         }
     });
 
-    if (allowedToLeaveDueToWeather(selectedTruck.type, document.getElementById("weerStad").innerText)) {
-        selectedTruck.leave(slot, selectedHall);
+    if (await allowedToLeaveDueToWeather(selectedTruck.type, currentCity)) {
+		selectedTruck.leave(slot, selectedHall);
     }
 }
 

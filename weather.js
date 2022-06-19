@@ -2,10 +2,14 @@ let key = "adf361d7c7a840f58bd145207221206";
 let temperature = 0;
 let condition = "";
 
+var currentCity = "";
+
 async function getWeatherInformation(city) {
     let stadElement = document.getElementById("weerStad");
     let gradenElement = document.getElementById("weerGraden");
     let conditieElement = document.getElementById("weerConditie");
+
+	currentCity = city;
 
     await fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
     .then(resp => resp.json())
@@ -33,13 +37,15 @@ async function allowedToLeaveDueToWeather(type, city) {
         console.log("Fout bij het ophalen van de temperatuur");
     });
 
-    if (temperature > 35 && type == "cold") {return false;}
+    if (temperature > 25 && type == "cold") {return false;}
     if (type == "fragile" && (condition == "Sneeuw" || condition == "Regen")) {return false;}
     return true;
 }
 
 function searchCity() {
     getWeatherInformation(document.getElementById("city").value);
+	
+	updateHallTruckButtons();
 }
 
 window.onload = () => {
