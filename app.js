@@ -546,6 +546,10 @@ class Truck {
 		for (let i = 0; i < packagesToRemove.length; i++) {
 			this.removePackage(packagesToRemove[i]);
 		}
+		
+		if (packagesToRemove.length != 0) {
+			this.updatePackageSlotIds();
+		}
 	}
 	
 	addPackage(truckPackage) {
@@ -574,6 +578,21 @@ class Truck {
 		
 		if (packageIndexToRemove != -1) {
 			this.packages.splice(packageIndexToRemove, 1);
+			
+			this.updatePackageSlotIds();
+		}
+	}
+	
+	updatePackageSlotIds() {
+		for (let i = 0; i < this.packages.length; i++) {
+			let truckPackage = this.packages[i];
+			truckPackage.slotId = i;
+			
+			if (truckPackage.slottedInTruck) {
+				let slotPosition = this.getPackageSlotLocation(truckPackage.slotId);
+				truckPackage.x = slotPosition.x;
+				truckPackage.y = slotPosition.y;
+			}
 		}
 	}
 	
@@ -810,6 +829,7 @@ function pickUpPackage(truckPackage, x, y) {
 	truckPackage.x = x;
 	truckPackage.y = y;
 	truckPackage.isBeingDragged = true;
+	truckPackage.slottedInTruck = false;
 }
 
 function dropPackage(x, y) {
@@ -827,9 +847,9 @@ function dropPackage(x, y) {
 						pickedUpPackage.y = target.y;
 						pickedUpPackage.isBeingDragged = false;
 						
-						truck.addPackage(pickedUpPackage);
-						
-						packageInTruck = true;
+						if (truck.addPackage(pickedUpPackage)) {
+							packageInTruck = true;
+						}
 					}
 				});
 				
