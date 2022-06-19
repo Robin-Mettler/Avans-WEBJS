@@ -1,11 +1,11 @@
 let temperature = 0;
 let condition = "";
 
-function fetchWeather(city) {
+async function fetchWeather(city) {
     let key = "adf361d7c7a840f58bd145207221206";
     let weerElement = document.getElementById("weersbeschrijving");
 
-    fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no")
+    await fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no")
     .then(resp => resp.json())
     .then(data => {
         temperature = data.current.temp_c;
