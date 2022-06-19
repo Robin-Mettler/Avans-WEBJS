@@ -692,6 +692,10 @@ async function sendTruckAway(slot) {
     }
 }
 
+for (let i = 0; i < 4; i++) {
+	document.getElementById("send" + i).addEventListener("click", function() {sendTruckAway(i)});
+}
+
 // UPDATE LOGIC //
 
 let updateRate = 20;
