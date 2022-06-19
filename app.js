@@ -58,7 +58,7 @@ function resetForm() {
     document.getElementById("length").value = null;
     document.getElementById("width").value = null;
     document.getElementById("arrival_interval").value = null;
-    document.getElementById("type").value = null;
+    document.getElementById("type").value = "cold";
     document.getElementById("radius").value = null;
 }
 
