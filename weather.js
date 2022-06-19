@@ -7,7 +7,7 @@ async function getWeatherInformation(city) {
     let gradenElement = document.getElementById("weerGraden");
     let conditieElement = document.getElementById("weerConditie");
 
-    fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
+    await fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
     .then(resp => resp.json())
     .then(data => {
         temperature = data.current.temp_c;
@@ -22,8 +22,8 @@ async function getWeatherInformation(city) {
     });
 }
 
-function allowedToLeaveDueToWeather(type, city) {
-    fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
+async function allowedToLeaveDueToWeather(type, city) {
+    await fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
     .then(resp => resp.json())
     .then(data => {
         temperature = data.current.temp_c;

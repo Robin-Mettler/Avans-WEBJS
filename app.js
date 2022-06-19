@@ -38,7 +38,10 @@ function validateForm() {
 
     for (i = 0; i < tab.length; i++) {
         if (currentStep == 0) {
-            if (tab[i].value > 4) {
+            if (tab[0].value > 6 || tab[0].value <= 0) {
+                valid = false;
+            }
+			if (tab[1].value > 3 || tab[1].value <= 0) {
                 valid = false;
             }
         }
@@ -216,6 +219,8 @@ class Package {
 		this.shape = generatePackageShape();
 		this.color = getRandomPackageColor();
 		this.isBeingDragged = false;
+		this.slottedInTruck = false;
+		this.slotId = -1;
 		
 		amountOfPackageIds++;
 	}
@@ -463,16 +468,22 @@ class ConveyerBelt {
 
 class Truck {
 	constructor(hallId, length, width, interval, type, radius) {
-		this.length = length * 75;
-		this.width = Math.round(width * 37.5);
+		this.length = length * 52 + 80;
+		this.lengthInPackages = length;
+		this.width = Math.round(width * 52) + 20;
+		this.widthInPackages = width;
 		this.interval = interval;
 		this.type = type;
 		this.radius = radius;
+		
 		this.color = truckColor(this.type);
+		this.packageSlotColor = "white";
+		this.packageSlotBorderColor = "black";
 		this.slot = halls[hallId].freeSlots.shift();
 		this.y = 210;
 		this.x = 240 * this.slot - this.width*.5 + 210;
 		this.packages = [];
+		this.packageCapacity = length * width;
 		this.packageSpeed = 2;
 		this.acceptsPackages = true;
 		this.visible = true;
@@ -488,13 +499,22 @@ class Truck {
 		
 		let packagesToRemove = [];
 		
+		let truck = this;
 		this.packages.forEach(function(truckPackage) {
 			if (truckPackage.isBeingDragged) {
 				packagesToRemove.push(truckPackage);
 			}
-			else {
+			else if (!truckPackage.slottedInTruck) {
 				truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
 				truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+				
+				if (truckPackage.x == target.x && truckPackage.y == target.y) {
+					truckPackage.slottedInTruck = true;
+					
+					let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
+					truckPackage.x = slotPosition.x;
+					truckPackage.y = slotPosition.y;
+				}
 			}
 		});
 		
@@ -504,8 +524,10 @@ class Truck {
 	}
 	
 	addPackage(truckPackage) {
-		if (this.acceptsPackages) {
+		if (this.acceptsPackages && this.packages.length < this.packageCapacity) {
 			this.packages.push(truckPackage);
+			
+			truckPackage.slotId = this.packages.length - 1;
 			
 			return true;
 		}
@@ -531,7 +553,14 @@ class Truck {
 	}
 	
 	getPackageTargetLocation() {
-		return {x: this.x + this.width*.5, y: this.y + 30}
+		return {x: this.x + this.width*.5, y: this.y + 30};
+	}
+	
+	getPackageSlotLocation(slotId) {
+		let x = this.x + 36 + (slotId%this.widthInPackages)*52;
+		let y = this.y + 36 + Math.floor(slotId/this.widthInPackages)*52;
+		
+		return {x: x, y: y};
 	}
 	
 	leave(slot, hall) {
@@ -563,6 +592,20 @@ class Truck {
 		if (this.visible) {
 			ctx.fillStyle = this.color;
 			ctx.fillRect(this.x, this.y, this.width, this.length);
+			
+			ctx.fillStyle = this.packageSlotBorderColor;
+			for (let x = 0; x < this.widthInPackages; x++) {
+				for (let y = 0; y < this.lengthInPackages; y++) {
+					ctx.fillRect(this.x + x*52 + 11, this.y + y*52 + 11, 50, 50);
+				}
+			}
+			
+			ctx.fillStyle = this.packageSlotColor;
+			for (let x = 0; x < this.widthInPackages; x++) {
+				for (let y = 0; y < this.lengthInPackages; y++) {
+					ctx.fillRect(this.x + x*52 + 12, this.y + y*52 + 12, 48, 48);
+				}
+			}
 		}
 	}
 }
