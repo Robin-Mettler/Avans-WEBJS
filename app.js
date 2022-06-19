@@ -475,6 +475,7 @@ class Truck {
 		this.packages = [];
 		this.packageSpeed = 2;
 		this.acceptsPackages = true;
+		this.visible = true;
 
         if (allowedToLeaveDueToWeather(type, document.getElementById("city").value)) {
             document.getElementById("send"+this.slot).disabled = false;
@@ -512,12 +513,12 @@ class Truck {
 		return false;
 	}
 	
-	removePackage(truckPackageToDestroy) {
+	removePackage(truckPackageToRemove) {
 		let packageIndexToRemove = -1;
 		for (let i = 0; i < this.packages.length; i++) {
 			let truckPackage = this.packages[i];
 			
-			if (truckPackage.id == truckPackageToDestroy.id) {
+			if (truckPackage.id == truckPackageToRemove.id) {
 				packageIndexToRemove = i;
 				
 				break;
@@ -533,9 +534,36 @@ class Truck {
 		return {x: this.x + this.width*.5, y: this.y + 30}
 	}
 	
+	leave(slot, hall) {
+		document.getElementById("send"+slot).disabled = true;	
+		this.acceptsPackages = false;
+		this.visible = false;
+		let truck = this;
+		
+		// remove packages in truck
+		this.packages.forEach(function(truckPackage) {
+			hall.destroyPackage(truckPackage);
+		});
+		
+		this.packages = [];
+		
+		setTimeout(function() {
+			truck.arrive(slot);
+		}, this.interval * 1000);
+	}
+	
+	arrive(slot) {
+		this.acceptsPackages = true;
+		this.visible = true;
+		
+		document.getElementById("send"+slot).disabled = false;
+	}
+	
 	draw(ctx) {
-		ctx.fillStyle = this.color;
-		ctx.fillRect(this.x, this.y, this.width, this.length);
+		if (this.visible) {
+			ctx.fillStyle = this.color;
+			ctx.fillRect(this.x, this.y, this.width, this.length);
+		}
 	}
 }
 
@@ -589,23 +617,8 @@ function sendTruckAway(slot) {
     });
 
     if (allowedToLeaveDueToWeather(selectedTruck.type, document.getElementById("weerStad").innerText)) {
-        Leave(slot, selectedTruck, selectedHall);
+        selectedTruck.leave(slot, selectedHall);
     }
-}
-
-function Leave(slot, selectedTruck, selectedHall) {
-    document.getElementById("send"+slot).disabled = true;
-    let index = selectedHall.trucks.indexOf(selectedTruck);
-    let removedTruck = selectedHall.trucks.splice(index, 1)[0];
-
-    setTimeout(function() {
-        Arrive(slot, selectedHall, removedTruck, index);
-    }, selectedTruck.interval * 1000);
-}
-
-function Arrive(slot, selectedHall, removedTruck, index) {
-    selectedHall.trucks.splice(index, 0, removedTruck);
-    document.getElementById("send"+slot).disabled = false;
 }
 
 // UPDATE LOGIC //
