@@ -642,6 +642,7 @@ class Truck {
 	}
 	
 	slotInAllPackages() {
+		let truck = this;
 		this.packages.forEach(function(truckPackage) {
 			truckPackage.slottedInTruck = true;
 				
@@ -680,7 +681,7 @@ class Truck {
 		this.isLeaving = true;
 		
 		updateHallTruckButtons();
-		slotInAllPackages();
+		this.slotInAllPackages();
 	}
 	
 	arrive() {
