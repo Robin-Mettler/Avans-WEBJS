@@ -186,7 +186,7 @@ async function updateHallTruckButtons() {
 		else {
 			let truck = currentHall.trucks[i];
 			
-			if (!truck.hasLeft && await allowedToLeaveDueToWeather(truck.type, currentCity)) {
+			if (truck.available() && await allowedToLeaveDueToWeather(truck.type, currentCity)) {
 				truckButton.disabled = false;
 			}
 			else {
@@ -509,46 +509,88 @@ class Truck {
 		this.packageSlotColor = "white";
 		this.packageSlotBorderColor = "black";
 		this.slot = halls[hallId].freeSlots.shift();
+		this.hallId = hallId;
 		this.y = 210;
 		this.x = 240 * this.slot - this.width*.5 + 210;
 		this.packages = [];
 		this.packageCapacity = length * width;
 		this.packageSpeed = 2;
 		this.acceptsPackages = true;
+		
+		this.truckSpeed = 10;
+		this.isLeaving = false;
+		this.isEntering = false;
 		this.hasLeft = false;
 	}
 	
-	update() {		
-		let target = this.getPackageTargetLocation();
-		let packageSpeed = this.packageSpeed;
-		
-		let packagesToRemove = [];
-		
-		let truck = this;
-		this.packages.forEach(function(truckPackage) {
-			if (truckPackage.isBeingDragged) {
-				packagesToRemove.push(truckPackage);
-			}
-			else if (!truckPackage.slottedInTruck) {
-				truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
-				truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+	update() {
+		if (this.isLeaving) {
+			let speed = this.truckSpeed;
+			this.y += speed;
+			
+			this.packages.forEach(function(truckPackage) {
+				truckPackage.y += speed;
+			});
+			
+			if (this.y >= canvasHeight) {
+				this.hasLeft = true;
+				this.isLeaving = false;
 				
-				if (truckPackage.x == target.x && truckPackage.y == target.y) {
-					truckPackage.slottedInTruck = true;
-					
-					let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
-					truckPackage.x = slotPosition.x;
-					truckPackage.y = slotPosition.y;
-				}
+				let truck = this;
+				setTimeout(function() {
+					truck.arrive();
+				}, this.interval * 1000);
+				
+				this.deliverAllPackages();
 			}
-		});
-		
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			this.removePackage(packagesToRemove[i]);
 		}
-		
-		if (packagesToRemove.length != 0) {
-			this.updatePackageSlotIds();
+		else if (this.isEntering) {
+			let speed = Math.max(this.y - this.truckSpeed, 210) - this.y;
+			this.y += speed;
+			
+			this.packages.forEach(function(truckPackage) {
+				truckPackage.y += speed;
+			});
+			
+			if (this.y == 210) {
+				this.acceptsPackages = true;
+				this.isEntering = false;
+				
+				updateHallTruckButtons();
+			}
+		}
+		else {
+			let target = this.getPackageTargetLocation();
+			let packageSpeed = this.packageSpeed;
+			
+			let packagesToRemove = [];
+			
+			let truck = this;
+			this.packages.forEach(function(truckPackage) {
+				if (truckPackage.isBeingDragged) {
+					packagesToRemove.push(truckPackage);
+				}
+				else if (!truckPackage.slottedInTruck) {
+					truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
+					truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+					
+					if (truckPackage.x == target.x && truckPackage.y == target.y) {
+						truckPackage.slottedInTruck = true;
+						
+						let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
+						truckPackage.x = slotPosition.x;
+						truckPackage.y = slotPosition.y;
+					}
+				}
+			});
+			
+			for (let i = 0; i < packagesToRemove.length; i++) {
+				this.removePackage(packagesToRemove[i]);
+			}
+			
+			if (packagesToRemove.length != 0) {
+				this.updatePackageSlotIds();
+			}
 		}
 	}
 	
@@ -583,6 +625,32 @@ class Truck {
 		}
 	}
 	
+	deliverAllPackages() {
+		let truckHall = null;
+		let truck = this;
+		halls.forEach(function(hall) {
+			if (hall.id == truck.hallId) {
+				truckHall = hall;
+			}
+		})
+		
+		this.packages.forEach(function(truckPackage) {
+			truckHall.destroyPackage(truckPackage);
+		});
+		
+		this.packages = [];
+	}
+	
+	slotInAllPackages() {
+		this.packages.forEach(function(truckPackage) {
+			truckPackage.slottedInTruck = true;
+				
+			let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
+			truckPackage.x = slotPosition.x;
+			truckPackage.y = slotPosition.y;
+		});
+	}
+	
 	updatePackageSlotIds() {
 		for (let i = 0; i < this.packages.length; i++) {
 			let truckPackage = this.packages[i];
@@ -607,30 +675,21 @@ class Truck {
 		return {x: x, y: y};
 	}
 	
-	leave(slot, hall) {
+	leave() {
 		this.acceptsPackages = false;
-		this.hasLeft = true;
-		let truck = this;
-		
-		// remove packages in truck
-		this.packages.forEach(function(truckPackage) {
-			hall.destroyPackage(truckPackage);
-		});
-		
-		this.packages = [];
-		
-		setTimeout(function() {
-			truck.arrive(slot);
-		}, this.interval * 1000);
+		this.isLeaving = true;
 		
 		updateHallTruckButtons();
+		slotInAllPackages();
 	}
 	
-	arrive(slot) {
-		this.acceptsPackages = true;
+	arrive() {
 		this.hasLeft = false;
-		
-		updateHallTruckButtons();
+		this.isEntering = true;
+	}
+	
+	available() {
+		return !this.isLeaving && !this.hasLeft && !this.isEntering;
 	}
 	
 	draw(ctx) {
@@ -707,7 +766,7 @@ async function sendTruckAway(slot) {
     });
 
     if (await allowedToLeaveDueToWeather(selectedTruck.type, currentCity)) {
-		selectedTruck.leave(slot, selectedHall);
+		selectedTruck.leave();
     }
 }
 
@@ -739,7 +798,7 @@ function update() {
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let canvasWidth = 1200;
-let canvasHeight = 1020;
+let canvasHeight = 800;
 
 function draw(hallId) {
 	halls.forEach(function(hall) {
