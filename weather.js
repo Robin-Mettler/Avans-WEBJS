@@ -3,21 +3,26 @@ let temperature = 0;
 let condition = "";
 
 function getWeatherInformation(city) {
-    let weerElement = document.getElementById("weersbeschrijving");
+    let stadElement = document.getElementById("weerStad");
+    let gradenElement = document.getElementById("weerGraden");
+    let conditieElement = document.getElementById("weerConditie");
 
     fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
     .then(resp => resp.json())
     .then(data => {
         temperature = data.current.temp_c;
         condition = data.current.condition.text;
-        weerElement.innerText = "Weer in " + city + " : de temperatuur is " + temperature + " graden en het is " + condition;
+
+        stadElement.innerText = city;
+        gradenElement.innerText = temperature;
+        conditieElement.innerText = condition;
     })
     .catch( () => {
         console.log("Fout bij het ophalen van het weer");
     });
 }
 
-function allowedToLeave(type, city) {
+function allowedToLeaveDueToWeather(type, city) {
     fetch("http://api.weatherapi.com/v1/current.json?key=" + key + "&q=" + city + "&aqi=no&lang=nl")
     .then(resp => resp.json())
     .then(data => {
@@ -28,8 +33,8 @@ function allowedToLeave(type, city) {
         console.log("Fout bij het ophalen van de temperatuur");
     });
 
-    if (temperature > 35 && truck.type == "cold") {return false;}
-    if (truck.type == "fragile" && (condition == "Sneeuw" || condition == "Regen")) {return false;}
+    if (temperature > 35 && type == "cold") {return false;}
+    if (type == "fragile" && (condition == "Sneeuw" || condition == "Regen")) {return false;}
     return true;
 }
 

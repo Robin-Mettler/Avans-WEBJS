@@ -97,7 +97,7 @@ class Truck {
 		this.y = 10;
 		this.x = 250 * this.slot + 10;
 
-        if (allowedToLeave(type, document.getElementById("city").value)) {
+        if (allowedToLeaveDueToWeather(type, document.getElementById("city").value)) {
             document.getElementById("send"+this.slot).disabled = false;
         }
 	}
@@ -141,8 +141,26 @@ function createTruck(hallId, length, width, interval, type, radius) {
 	});
 }
 
-function sendTruckAway() {
-    
+function sendTruckAway(slot) {
+    let selectedTruck = null;
+    halls.forEach(function(hall) {
+		if (hall.id == currentHallId) {
+            selectedTruck = hall.trucks[slot];
+        }
+    });
+
+    if (allowedToLeaveDueToWeather(selectedTruck.type, document.getElementById("weerStad").innerText)) {
+        document.getElementById("send"+slot).disabled = true;
+        Leave(slot, selectedTruck.interval);
+    }
+}
+
+function Leave(slot, interval) {
+    setTimeout(Arrive(slot), interval * 1000);
+}
+
+function Arrive(slot) {
+    document.getElementById("send"+slot).disabled = false;
 }
 
 // UPDATE LOGIC //
