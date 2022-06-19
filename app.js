@@ -38,7 +38,10 @@ function validateForm() {
 
     for (i = 0; i < tab.length; i++) {
         if (currentStep == 0) {
-            if (tab[i].value > 4) {
+            if (tab[0].value > 6 || tab[0].value <= 0) {
+                valid = false;
+            }
+			if (tab[1].value > 3 || tab[1].value <= 0) {
                 valid = false;
             }
         }
@@ -55,7 +58,7 @@ function resetForm() {
     document.getElementById("length").value = null;
     document.getElementById("width").value = null;
     document.getElementById("arrival_interval").value = null;
-    document.getElementById("type").value = null;
+    document.getElementById("type").value = "cold";
     document.getElementById("radius").value = null;
 }
 
@@ -166,6 +169,33 @@ function updateHallArrowButtons() {
 	hallText.innerHTML = "Hall " + (currentHallId + 1);
 }
 
+async function updateHallTruckButtons() {
+    let currentHall = null;
+    halls.forEach(function(hall) {
+		if (hall.id == currentHallId) {
+            currentHall = hall;
+        }
+    });
+	
+	for (let i=0; i < 4; i++) {
+		let truckButton = document.getElementById("send" + i);
+		
+		if (i >= currentHall.trucks.length) {
+			truckButton.disabled = true;
+		}
+		else {
+			let truck = currentHall.trucks[i];
+			
+			if (truck.available() && await allowedToLeaveDueToWeather(truck.type, currentCity)) {
+				truckButton.disabled = false;
+			}
+			else {
+				truckButton.disabled = true;
+			}
+		}
+	}
+}
+
 function nextHall() {
 	if (currentHallId != halls.length - 1) {
 		// drop left-over dragged package
@@ -174,6 +204,7 @@ function nextHall() {
 		currentHallId++;
 		
 		updateHallArrowButtons();
+		updateHallTruckButtons();
 	}
 }
 
@@ -185,6 +216,7 @@ function previousHall() {
 		currentHallId--;
 		
 		updateHallArrowButtons();
+		updateHallTruckButtons();
 	}
 }
 
@@ -216,6 +248,8 @@ class Package {
 		this.shape = generatePackageShape();
 		this.color = getRandomPackageColor();
 		this.isBeingDragged = false;
+		this.slottedInTruck = false;
+		this.slotId = -1;
 		
 		amountOfPackageIds++;
 	}
@@ -463,48 +497,108 @@ class ConveyerBelt {
 
 class Truck {
 	constructor(hallId, length, width, interval, type, radius) {
-		this.length = length * 75;
-		this.width = Math.round(width * 37.5);
+		this.length = length * 52 + 80;
+		this.lengthInPackages = length;
+		this.width = Math.round(width * 52) + 20;
+		this.widthInPackages = width;
 		this.interval = interval;
 		this.type = type;
 		this.radius = radius;
+		
 		this.color = truckColor(this.type);
+		this.packageSlotColor = "white";
+		this.packageSlotBorderColor = "black";
 		this.slot = halls[hallId].freeSlots.shift();
+		this.hallId = hallId;
 		this.y = 210;
 		this.x = 240 * this.slot - this.width*.5 + 210;
 		this.packages = [];
+		this.packageCapacity = length * width;
 		this.packageSpeed = 2;
 		this.acceptsPackages = true;
-
-        if (allowedToLeaveDueToWeather(type, document.getElementById("city").value)) {
-            document.getElementById("send"+this.slot).disabled = false;
-        }
+		
+		this.truckSpeed = 10;
+		this.isLeaving = false;
+		this.isEntering = false;
+		this.hasLeft = false;
 	}
 	
-	update() {		
-		let target = this.getPackageTargetLocation();
-		let packageSpeed = this.packageSpeed;
-		
-		let packagesToRemove = [];
-		
-		this.packages.forEach(function(truckPackage) {
-			if (truckPackage.isBeingDragged) {
-				packagesToRemove.push(truckPackage);
+	update() {
+		if (this.isLeaving) {
+			let speed = this.truckSpeed;
+			this.y += speed;
+			
+			this.packages.forEach(function(truckPackage) {
+				truckPackage.y += speed;
+			});
+			
+			if (this.y >= canvasHeight) {
+				this.hasLeft = true;
+				this.isLeaving = false;
+				
+				let truck = this;
+				setTimeout(function() {
+					truck.arrive();
+				}, this.interval * 1000);
+				
+				this.deliverAllPackages();
 			}
-			else {
-				truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
-				truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+		}
+		else if (this.isEntering) {
+			let speed = Math.max(this.y - this.truckSpeed, 210) - this.y;
+			this.y += speed;
+			
+			this.packages.forEach(function(truckPackage) {
+				truckPackage.y += speed;
+			});
+			
+			if (this.y == 210) {
+				this.acceptsPackages = true;
+				this.isEntering = false;
+				
+				updateHallTruckButtons();
 			}
-		});
-		
-		for (let i = 0; i < packagesToRemove.length; i++) {
-			this.removePackage(packagesToRemove[i]);
+		}
+		else {
+			let target = this.getPackageTargetLocation();
+			let packageSpeed = this.packageSpeed;
+			
+			let packagesToRemove = [];
+			
+			let truck = this;
+			this.packages.forEach(function(truckPackage) {
+				if (truckPackage.isBeingDragged) {
+					packagesToRemove.push(truckPackage);
+				}
+				else if (!truckPackage.slottedInTruck) {
+					truckPackage.x = clamp(target.x, truckPackage.x - packageSpeed, truckPackage.x + packageSpeed);
+					truckPackage.y = clamp(target.y, truckPackage.y - packageSpeed, truckPackage.y + packageSpeed);
+					
+					if (truckPackage.x == target.x && truckPackage.y == target.y) {
+						truckPackage.slottedInTruck = true;
+						
+						let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
+						truckPackage.x = slotPosition.x;
+						truckPackage.y = slotPosition.y;
+					}
+				}
+			});
+			
+			for (let i = 0; i < packagesToRemove.length; i++) {
+				this.removePackage(packagesToRemove[i]);
+			}
+			
+			if (packagesToRemove.length != 0) {
+				this.updatePackageSlotIds();
+			}
 		}
 	}
 	
 	addPackage(truckPackage) {
-		if (this.acceptsPackages) {
+		if (this.acceptsPackages && this.packages.length < this.packageCapacity) {
 			this.packages.push(truckPackage);
+			
+			truckPackage.slotId = this.packages.length - 1;
 			
 			return true;
 		}
@@ -512,12 +606,12 @@ class Truck {
 		return false;
 	}
 	
-	removePackage(truckPackageToDestroy) {
+	removePackage(truckPackageToRemove) {
 		let packageIndexToRemove = -1;
 		for (let i = 0; i < this.packages.length; i++) {
 			let truckPackage = this.packages[i];
 			
-			if (truckPackage.id == truckPackageToDestroy.id) {
+			if (truckPackage.id == truckPackageToRemove.id) {
 				packageIndexToRemove = i;
 				
 				break;
@@ -526,16 +620,98 @@ class Truck {
 		
 		if (packageIndexToRemove != -1) {
 			this.packages.splice(packageIndexToRemove, 1);
+			
+			this.updatePackageSlotIds();
+		}
+	}
+	
+	deliverAllPackages() {
+		let truckHall = null;
+		let truck = this;
+		halls.forEach(function(hall) {
+			if (hall.id == truck.hallId) {
+				truckHall = hall;
+			}
+		})
+		
+		this.packages.forEach(function(truckPackage) {
+			truckHall.destroyPackage(truckPackage);
+		});
+		
+		this.packages = [];
+	}
+	
+	slotInAllPackages() {
+		let truck = this;
+		this.packages.forEach(function(truckPackage) {
+			truckPackage.slottedInTruck = true;
+				
+			let slotPosition = truck.getPackageSlotLocation(truckPackage.slotId);
+			truckPackage.x = slotPosition.x;
+			truckPackage.y = slotPosition.y;
+		});
+	}
+	
+	updatePackageSlotIds() {
+		for (let i = 0; i < this.packages.length; i++) {
+			let truckPackage = this.packages[i];
+			truckPackage.slotId = i;
+			
+			if (truckPackage.slottedInTruck) {
+				let slotPosition = this.getPackageSlotLocation(truckPackage.slotId);
+				truckPackage.x = slotPosition.x;
+				truckPackage.y = slotPosition.y;
+			}
 		}
 	}
 	
 	getPackageTargetLocation() {
-		return {x: this.x + this.width*.5, y: this.y + 30}
+		return {x: this.x + this.width*.5, y: this.y + 30};
+	}
+	
+	getPackageSlotLocation(slotId) {
+		let x = this.x + 36 + (slotId%this.widthInPackages)*52;
+		let y = this.y + 36 + Math.floor(slotId/this.widthInPackages)*52;
+		
+		return {x: x, y: y};
+	}
+	
+	leave() {
+		this.acceptsPackages = false;
+		this.isLeaving = true;
+		
+		updateHallTruckButtons();
+		this.slotInAllPackages();
+	}
+	
+	arrive() {
+		this.hasLeft = false;
+		this.isEntering = true;
+	}
+	
+	available() {
+		return !this.isLeaving && !this.hasLeft && !this.isEntering;
 	}
 	
 	draw(ctx) {
-		ctx.fillStyle = this.color;
-		ctx.fillRect(this.x, this.y, this.width, this.length);
+		if (!this.hasLeft) {
+			ctx.fillStyle = this.color;
+			ctx.fillRect(this.x, this.y, this.width, this.length);
+			
+			ctx.fillStyle = this.packageSlotBorderColor;
+			for (let x = 0; x < this.widthInPackages; x++) {
+				for (let y = 0; y < this.lengthInPackages; y++) {
+					ctx.fillRect(this.x + x*52 + 11, this.y + y*52 + 11, 50, 50);
+				}
+			}
+			
+			ctx.fillStyle = this.packageSlotColor;
+			for (let x = 0; x < this.widthInPackages; x++) {
+				for (let y = 0; y < this.lengthInPackages; y++) {
+					ctx.fillRect(this.x + x*52 + 12, this.y + y*52 + 12, 48, 48);
+				}
+			}
+		}
 	}
 }
 
@@ -576,9 +752,11 @@ function createTruck(hallId, length, width, interval, type, radius) {
 			hall.addTruck(truck);
 		}
 	});
+	
+	updateHallTruckButtons();
 }
 
-function sendTruckAway(slot) {
+async function sendTruckAway(slot) {
     let selectedTruck = null;
     let selectedHall = null;
     halls.forEach(function(hall) {
@@ -588,24 +766,13 @@ function sendTruckAway(slot) {
         }
     });
 
-    if (allowedToLeaveDueToWeather(selectedTruck.type, document.getElementById("weerStad").innerText)) {
-        Leave(slot, selectedTruck, selectedHall);
+    if (await allowedToLeaveDueToWeather(selectedTruck.type, currentCity)) {
+		selectedTruck.leave();
     }
 }
 
-function Leave(slot, selectedTruck, selectedHall) {
-    document.getElementById("send"+slot).disabled = true;
-    let index = selectedHall.trucks.indexOf(selectedTruck);
-    let removedTruck = selectedHall.trucks.splice(index, 1)[0];
-
-    setTimeout(function() {
-        Arrive(slot, selectedHall, removedTruck, index);
-    }, selectedTruck.interval * 1000);
-}
-
-function Arrive(slot, selectedHall, removedTruck, index) {
-    selectedHall.trucks.splice(index, 0, removedTruck);
-    document.getElementById("send"+slot).disabled = false;
+for (let i = 0; i < 4; i++) {
+	document.getElementById("send" + i).addEventListener("click", function() {sendTruckAway(i)});
 }
 
 // UPDATE LOGIC //
@@ -632,7 +799,7 @@ function update() {
 let canvas = document.getElementById("myCanvas");
 let ctx = canvas.getContext("2d");
 let canvasWidth = 1200;
-let canvasHeight = 1020;
+let canvasHeight = 800;
 
 function draw(hallId) {
 	halls.forEach(function(hall) {
@@ -722,6 +889,7 @@ function pickUpPackage(truckPackage, x, y) {
 	truckPackage.x = x;
 	truckPackage.y = y;
 	truckPackage.isBeingDragged = true;
+	truckPackage.slottedInTruck = false;
 }
 
 function dropPackage(x, y) {
@@ -739,9 +907,9 @@ function dropPackage(x, y) {
 						pickedUpPackage.y = target.y;
 						pickedUpPackage.isBeingDragged = false;
 						
-						truck.addPackage(pickedUpPackage);
-						
-						packageInTruck = true;
+						if (truck.addPackage(pickedUpPackage)) {
+							packageInTruck = true;
+						}
 					}
 				});
 				
