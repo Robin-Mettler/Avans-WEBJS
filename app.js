@@ -580,23 +580,31 @@ function createTruck(hallId, length, width, interval, type, radius) {
 
 function sendTruckAway(slot) {
     let selectedTruck = null;
+    let selectedHall = null;
     halls.forEach(function(hall) {
 		if (hall.id == currentHallId) {
+            selectedHall = hall;
             selectedTruck = hall.trucks[slot];
         }
     });
 
     if (allowedToLeaveDueToWeather(selectedTruck.type, document.getElementById("weerStad").innerText)) {
-        document.getElementById("send"+slot).disabled = true;
-        Leave(slot, selectedTruck.interval);
+        Leave(slot, selectedTruck, selectedHall);
     }
 }
 
-function Leave(slot, interval) {
-    setTimeout(Arrive(slot), interval * 1000);
+function Leave(slot, selectedTruck, selectedHall) {
+    document.getElementById("send"+slot).disabled = true;
+    let index = selectedHall.trucks.indexOf(selectedTruck);
+    let removedTruck = selectedHall.trucks.splice(index, 1)[0];
+
+    setTimeout(function() {
+        Arrive(slot, selectedHall, removedTruck, index);
+    }, selectedTruck.interval * 1000);
 }
 
-function Arrive(slot) {
+function Arrive(slot, selectedHall, removedTruck, index) {
+    selectedHall.trucks.splice(index, 0, removedTruck);
     document.getElementById("send"+slot).disabled = false;
 }
 
