@@ -23,4 +23,6 @@ function searchCity() {
 
 window.onload = () => {
     fetchWeather("Amsterdam");
+	
+	document.getElementById("weather-button").addEventListener("click", searchCity);
 } 

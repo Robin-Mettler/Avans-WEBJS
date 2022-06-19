@@ -63,6 +63,8 @@ function clamp(num, min, max) {
 	return Math.min(Math.max(num, min), max);
 }
 
+document.getElementById("nextBtn").addEventListener("click", nextStep);
+
 // HALLS //
 
 var halls = [];
@@ -172,6 +174,9 @@ function createHall() {
 for (let i=0; i < 2; i++) { // initialize 2 halls
 	createHall();
 }
+
+document.getElementById("hall-left-button").addEventListener("click", previousHall);
+document.getElementById("hall-right-button").addEventListener("click", nextHall);
 
 // PACKAGES //
 
